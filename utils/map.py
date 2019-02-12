@@ -20,8 +20,6 @@ class Map:
         y = self.h // 2
         
         self._initRoomGenerator(x, y)
-        # TODO: Objects
-        # TODO: Monsters
     
     def _initRoomGenerator(self, x, y):
         if x > 1 and x < self.w - 2 and y > 1 and y < self.h - 2:
@@ -71,43 +69,58 @@ class Map:
             # Start Point
             self.map[y][x] = '@'
             
-            
             # Door & Connection
             ## Up
             if (y - half_size - 1) > 0:
                 randomX = random.choice(xRange)
                 self.map[y - half_size - 1][randomX] = '+'
-                self._corrGenerator(randomX, y - half_size - 2)
+                self._corrGenerator(randomX, y - half_size - 2, Direction.UP)
             
             ## Down
             if (y + half_size + 1) < (self.h - 1):
                 randomX = random.choice(xRange)
                 self.map[y + half_size + 1][randomX] = '+'
-                self._corrGenerator(randomX, y + half_size + 2)
+                self._corrGenerator(randomX, y + half_size + 2, Direction.DOWN)
             
             ## Left
             if (x - half_size - 1) > 0:
                 randomY = random.choice(yRange)
                 self.map[randomY][x - half_size - 1] = '+'
-                self._corrGenerator(x - half_size - 2, randomY)
+                self._corrGenerator(x - half_size - 2, randomY, Direction.LEFT)
             
             ## Right
             if (x + half_size + 1) < (self.w - 1):
                 randomY = random.choice(yRange)
                 self.map[randomY][x + half_size + 1] = '+'
-                self._corrGenerator(x + half_size + 2, randomY)
+                self._corrGenerator(x + half_size + 2, randomY, Direction.RIGHT)
         else:
             raise ValueError('The start point is too close to the bound.')
     
     def _roomGenerator(self, x, y, formalDir):
         dir, lb, ub = self._roomInfoGenerator(x, y, formalDir)
-        # TODO: Make Room
+        if dir == None:
+            return False
+        rLB = random.randint(lb, ub - 4)
+        rUB = random.randint(rLB + 4, ub)
+        
+        # Vertical
+        if dir == Direction.UP and Direction.DOWN:
+            step = -1 if dir == Direction.UP else 1
+        # Horizon
+        elif dir == Direction.LEFT and Direction.RIGHT:
+            step = -1 if dir == Direction.LEFT else 1
+        return True
     
     def _roomInfoGenerator(self, x, y, formalDir):
         infoList = []
         for cDir in [Direction.UP, Direction.DOWN]:
             check = y > 3 if cDir == Direction.UP else y < self.h - 4
-            if check and not formalDir == cDir:
+            if formalDir == Direction.UP:
+                bDir = Direction.DOWN
+            else:
+                bDir = Direction.UP
+            
+            if check and not bDir == cDir:
                 ok = True
                 ylb = y - 4 if cDir == Direction.UP else y
                 yub = y + 1 if cDir == Direction.UP else y + 5
@@ -130,7 +143,12 @@ class Map:
                         infoList.append((cDir, lb, ub))
         for cDir in [Direction.LEFT, Direction.RIGHT]:
             check = x > 3 if cDir == Direction.LEFT else x < self.w - 4
-            if check and not formalDir == cDir:
+            if formalDir == Direction.LEFT:
+                bDir = Direction.RIGHT
+            else:
+                bDir = Direction.LEFT
+            
+            if check and not bDir == cDir:
                 ok = True
                 xlb = x - 4 if cDir == Direction.LEFT else x
                 xub = x + 1 if cDir == Direction.LEFT else x + 5
@@ -151,15 +169,74 @@ class Map:
                                 ub = cy - 1
                     if (ub - lb + 1) > 4:
                         infoList.append((cDir, lb, ub))
-        return random.choice(infoList)
+        if len(infoList) > 0:
+            return random.choice(infoList)
+        return None, None, None
     
-    def _corrGenerator(self, x, y):
-        self.map[y][x] = '.'
-        # TODO: Make Corridor
-    
-    def _corrInfoRandom(self, x, y):
-        # TODO: Get Corridor Info
-        pass
+    def _corrGenerator(self, x, y, formalDir):
+        dir, length = self._corrInfoRandom(x, y, formalDir)
+        if dir == None:
+            return
+        length = random.randint(3, length)
+        nx = x
+        ny = y
+        
+        if dir == Direction.UP:
+            for i in range(length):
+                self.map[y - i][x] = '.'
+            ny = y - length
+        elif dir == Direction.DOWN:
+            for i in range(length):
+                self.map[y + i][x] = '.'
+            ny = y + length
+        elif dir == Direction.LEFT:
+            for i in range(length):
+                self.map[y][x - i] = '.'
+            nx = x - length
+        elif dir == Direction.RIGHT:
+            for i in range(length):
+                self.map[y][x + i] = '.'
+            nx = x + length
+        
+        if nx < 1 or nx > self.w - 2 or \
+           ny < 1 or ny > self.h - 2:
+            return
+        
+        self._corrGenerator(nx, ny, dir)
+            
+    def _corrInfoRandom(self, x, y, formalDir):
+        info = []
+        if not formalDir == Direction.DOWN:
+            cy = y - 1
+            for cy in range(y - 1, max(y - 7, 0), -1):
+                if self.map[cy][x] not in ['?', '.']:
+                    break
+            if y - cy > 3:
+                info.append((Direction.UP, y - cy))
+        if not formalDir == Direction.UP:
+            cy = y + 1
+            for cy in range(y + 1, min(y + 7, self.h - 1)):
+                if self.map[cy][x] not in ['?', '.']:
+                    break
+            if cy - y > 3:
+                info.append((Direction.DOWN, cy - y))
+        if not formalDir == Direction.LEFT:
+            cx = x + 1
+            for cx in range(x + 1, min(x + 7, self.w - 1)):
+                if self.map[y][cx] not in ['?', '.']:
+                    break
+            if cx - x > 3:
+                info.append((Direction.RIGHT, cx - x))
+        if not formalDir == Direction.RIGHT:
+            cx = x - 1
+            for cx in range(x - 1, max(x - 7, 0), -1):
+                if self.map[y][cx] not in ['?', '.']:
+                    break
+            if x - cx > 3:
+                info.append((Direction.LEFT, x - cx))
+        if len(info) > 1:
+            return random.choice(info)
+        return None, None
     
 if __name__ == '__main__':
     map = Map(80, 60)
