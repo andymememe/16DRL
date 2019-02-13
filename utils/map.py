@@ -1,248 +1,336 @@
-from enum import Enum
+# generator-1.py, a simple python dungeon generator by
+# James Spencer <jamessp [at] gmail.com>.
+
+# To the extent possible under law, the person who associated CC0 with
+# pathfinder.py has waived all copyright and related or neighboring rights
+# to pathfinder.py.
+
+# You should have received a copy of the CC0 legalcode along with this
+# work. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 import random
+ 
+CHARACTER_TILES = {'stone': ' ',
+                   'floor': '.',
+                   'wall' : '#',
+                   'door' : '+'}
 
-class Direction(Enum):
-    UP = 0
-    DOWN = 1
-    LEFT = 2
-    RIGHT = 3
-
-class Map:
-    def __init__(self, w, h, roomProb=25, wallPort=15):
-        self.map = [['?' for i in range(w)] for j in range(h)]
-        self.w = w
-        self.h = h
-        self.rp = roomProb
-        self.wp = wallPort
-    
-    def mapGenerator(self, level):
-        x = self.w // 2
-        y = self.h // 2
-        
-        self._initRoomGenerator(x, y)
-    
-    def _initRoomGenerator(self, x, y):
-        if x > 1 and x < self.w - 2 and y > 1 and y < self.h - 2:
-            # Room Interior
-            size = random.choice([3, 5, 7])
-            half_size = (size - 1) // 2
-            for i in range(max(x - half_size, 1),
-                           min(x + half_size + 1, self.w - 1)):
-                for j in range(max(y - half_size, 1),
-                               min(y + half_size + 1, self.h - 1)):
-                    self.map[j][i] = 'R'
-            
-            # Wall
-            xRange = list(range(max(x - half_size, 1),
-                                min(x + half_size + 1, self.w - 1)))
-            yRange = list(range(max(y - half_size, 1),
-                                min(y + half_size + 1, self.h - 1)))
-            for xi in xRange:
-                self.map[max(y - half_size - 1, 0)][xi] = '#'
-                self.map[min(y + half_size + 1, self.h - 1)][xi] = '#'
-            for yi in yRange:
-                self.map[yi][max(x - half_size - 1, 0)] = '#'
-                self.map[yi][min(x + half_size + 1, self.w - 1)] = '#'
-                
-            ## Corner
-            self.map[
-                max(y - half_size - 1, 0)
-            ][
-                max(x - half_size - 1, 0)
-            ] = '#'
-            self.map[
-                max(y - half_size - 1, 0)
-            ][
-                min(x + half_size + 1, self.w - 1)
-            ] = '#'
-            self.map[
-                min(y + half_size + 1,self.h - 1)
-            ][
-                max(x - half_size - 1, 0)
-            ] = '#'
-            self.map[
-                min(y + half_size + 1, self.h - 1)
-            ][
-                min(x + half_size + 1, self.w - 1)
-            ] = '#'
-            
-            # Start Point
-            self.map[y][x] = '@'
-            
-            # Door & Connection
-            ## Up
-            if (y - half_size - 1) > 0:
-                randomX = random.choice(xRange)
-                self.map[y - half_size - 1][randomX] = '+'
-                self._corrGenerator(randomX, y - half_size - 2, Direction.UP)
-            
-            ## Down
-            if (y + half_size + 1) < (self.h - 1):
-                randomX = random.choice(xRange)
-                self.map[y + half_size + 1][randomX] = '+'
-                self._corrGenerator(randomX, y + half_size + 2, Direction.DOWN)
-            
-            ## Left
-            if (x - half_size - 1) > 0:
-                randomY = random.choice(yRange)
-                self.map[randomY][x - half_size - 1] = '+'
-                self._corrGenerator(x - half_size - 2, randomY, Direction.LEFT)
-            
-            ## Right
-            if (x + half_size + 1) < (self.w - 1):
-                randomY = random.choice(yRange)
-                self.map[randomY][x + half_size + 1] = '+'
-                self._corrGenerator(x + half_size + 2, randomY, Direction.RIGHT)
+class Generator():
+    def __init__(self, width=70, height=60, max_rooms=15, min_room_xy=5,
+                 max_room_xy=10, rooms_overlap=False, random_connections=1,
+                 random_spurs=3, tiles=CHARACTER_TILES):
+        self.width = width
+        self.height = height
+        self.max_rooms = max_rooms
+        self.min_room_xy = min_room_xy
+        self.max_room_xy = max_room_xy
+        self.rooms_overlap = rooms_overlap
+        self.random_connections = random_connections
+        self.random_spurs = random_spurs
+        self.tiles = CHARACTER_TILES
+        self.level = []
+        self.room_list = []
+        self.corridor_list = []
+        self.door_list = []
+        self.tiles_level = []
+ 
+    def gen_room(self):
+        x, y, w, h = 0, 0, 0, 0
+ 
+        w = random.randint(self.min_room_xy, self.max_room_xy)
+        h = random.randint(self.min_room_xy, self.max_room_xy)
+        x = random.randint(1, (self.width - w - 1))
+        y = random.randint(1, (self.height - h - 1))
+ 
+        return [x, y, w, h]
+ 
+    def room_overlapping(self, room, room_list):
+        x = room[0]
+        y = room[1]
+        w = room[2]
+        h = room[3]
+ 
+        for current_room in room_list:
+ 
+            # The rectangles don't overlap if
+            # one rectangle's minimum in some dimension
+            # is greater than the other's maximum in
+            # that dimension.
+ 
+            if (x < (current_room[0] + current_room[2]) and
+                current_room[0] < (x + w) and
+                y < (current_room[1] + current_room[3]) and
+                current_room[1] < (y + h)):
+ 
+                return True
+ 
+        return False
+ 
+ 
+    def corridor_between_points(self, x1, y1, x2, y2, join_type='either'):
+        if x1 == x2 and y1 == y2 or x1 == x2 or y1 == y2:
+            return [(x1, y1), (x2, y2)]
         else:
-            raise ValueError('The start point is too close to the bound.')
-    
-    def _roomGenerator(self, x, y, formalDir):
-        dir, lb, ub = self._roomInfoGenerator(x, y, formalDir)
-        if dir == None:
-            return False
-        rLB = random.randint(lb, ub - 4)
-        rUB = random.randint(rLB + 4, ub)
-        
-        # Vertical
-        if dir == Direction.UP and Direction.DOWN:
-            step = -1 if dir == Direction.UP else 1
-        # Horizon
-        elif dir == Direction.LEFT and Direction.RIGHT:
-            step = -1 if dir == Direction.LEFT else 1
-        return True
-    
-    def _roomInfoGenerator(self, x, y, formalDir):
-        infoList = []
-        for cDir in [Direction.UP, Direction.DOWN]:
-            check = y > 3 if cDir == Direction.UP else y < self.h - 4
-            if formalDir == Direction.UP:
-                bDir = Direction.DOWN
+            # 2 Corridors
+            # NOTE: Never randomly choose a join that will go out of bounds
+            # when the walls are added.
+            join = None
+            if join_type is 'either' and set([0, 1]).intersection(
+                 set([x1, x2, y1, y2])):
+ 
+                join = 'bottom'
+            elif join_type is 'either' and set([self.width - 1,
+                 self.width - 2]).intersection(set([x1, x2])) or set(
+                 [self.height - 1, self.height - 2]).intersection(
+                 set([y1, y2])):
+ 
+                join = 'top'
+            elif join_type is 'either':
+                join = random.choice(['top', 'bottom'])
             else:
-                bDir = Direction.UP
+                join = join_type
+ 
+            if join is 'top':
+                return [(x1, y1), (x1, y2), (x2, y2)]
+            elif join is 'bottom':
+                return [(x1, y1), (x2, y1), (x2, y2)]
+ 
+    def join_rooms(self, room_1, room_2, join_type='either'):
+        # sort by the value of x
+        sorted_room = [room_1, room_2]
+        sorted_room.sort(key=lambda x_y: x_y[0])
+ 
+        x1 = sorted_room[0][0]
+        y1 = sorted_room[0][1]
+        w1 = sorted_room[0][2]
+        h1 = sorted_room[0][3]
+        x1_2 = x1 + w1 - 1
+        y1_2 = y1 + h1 - 1
+ 
+        x2 = sorted_room[1][0]
+        y2 = sorted_room[1][1]
+        w2 = sorted_room[1][2]
+        h2 = sorted_room[1][3]
+        x2_2 = x2 + w2 - 1
+        y2_2 = y2 + h2 - 1
+ 
+        # overlapping on x
+        if x1 < (x2 + w2) and x2 < (x1 + w1):
+            jx1 = random.randint(x2, x1_2)
+            jx2 = jx1
+            tmp_y = [y1, y2, y1_2, y2_2]
+            tmp_y.sort()
+            jy1 = tmp_y[1] + 1
+            jy2 = tmp_y[2] - 1
             
-            if check and not bDir == cDir:
-                ok = True
-                ylb = y - 4 if cDir == Direction.UP else y
-                yub = y + 1 if cDir == Direction.UP else y + 5
-                for cy in range(ylb, yub):
-                    if map[cy][x] == 'R':
-                        ok = False
-                        break
-                if ok:
-                    lb = max(x - 7, 0)
-                    ub = min(x + 7, self.w - 1)
-                    for cx in range(lb, x):
-                        for cy in range(ylb, yub):
-                            if map[cy][cx] == 'R':
-                                lb = cx + 1                
-                    for cx in range(ub, x, -1):
-                        for cy in range(ylb, yub):
-                            if map[cy][cx] == 'R':
-                                ub = cx - 1
-                    if (ub - lb + 1) > 4:
-                        infoList.append((cDir, lb, ub))
-        for cDir in [Direction.LEFT, Direction.RIGHT]:
-            check = x > 3 if cDir == Direction.LEFT else x < self.w - 4
-            if formalDir == Direction.LEFT:
-                bDir = Direction.RIGHT
+            self.door_list.append((jx1, jy1))
+            self.door_list.append((jx2, jy2))
+            corridors = self.corridor_between_points(jx1, jy1, jx2, jy2)
+            self.corridor_list.append(corridors)
+ 
+        # overlapping on y
+        elif y1 < (y2 + h2) and y2 < (y1 + h1):
+            if y2 > y1:
+                jy1 = random.randint(y2, y1_2)
+                jy2 = jy1
             else:
-                bDir = Direction.LEFT
+                jy1 = random.randint(y1, y2_2)
+                jy2 = jy1
+            tmp_x = [x1, x2, x1_2, x2_2]
+            tmp_x.sort()
+            jx1 = tmp_x[1] + 1
+            jx2 = tmp_x[2] - 1
+ 
+            self.door_list.append((jx1, jy1))
+            self.door_list.append((jx2, jy2))
+            corridors = self.corridor_between_points(jx1, jy1, jx2, jy2)
+            self.corridor_list.append(corridors)
+ 
+        # no overlap
+        else:
+            join = None
+            if join_type is 'either':
+                join = random.choice(['top', 'bottom'])
+            else:
+                join = join_type
+ 
+            if join is 'top':
+                if y2 > y1:
+                    jx1 = x1_2 + 1
+                    jy1 = random.randint(y1, y1_2)
+                    jx2 = random.randint(x2, x2_2)
+                    jy2 = y2 - 1
+                    
+                    self.door_list.append((jx1, jy1))
+                    self.door_list.append((jx2, jy2))
+                    corridors = self.corridor_between_points(
+                        jx1, jy1, jx2, jy2, 'bottom')
+                    self.corridor_list.append(corridors)
+                else:
+                    jx1 = random.randint(x1, x1_2)
+                    jy1 = y1 - 1
+                    jx2 = x2 - 1
+                    jy2 = random.randint(y2, y2_2)
+                    
+                    self.door_list.append((jx1, jy1))
+                    self.door_list.append((jx2, jy2))
+                    corridors = self.corridor_between_points(
+                        jx1, jy1, jx2, jy2, 'top')
+                    self.corridor_list.append(corridors)
+ 
+            elif join is 'bottom':
+                if y2 > y1:
+                    jx1 = random.randint(x1, x1_2)
+                    jy1 = y1_2 + 1
+                    jx2 = x2 - 1
+                    jy2 = random.randint(y2, y2_2)
             
-            if check and not bDir == cDir:
-                ok = True
-                xlb = x - 4 if cDir == Direction.LEFT else x
-                xub = x + 1 if cDir == Direction.LEFT else x + 5
-                for cx in range(xlb, xub):
-                    if map[y][cx] == 'R':
-                        ok = False
-                        break
-                if ok:
-                    lb = max(y - 7, 0)
-                    ub = min(y + 7, self.h - 1)
-                    for cy in range(lb, y):
-                        for cx in range(xlb, xub):
-                            if map[cy][cx] == 'R':
-                                lb = cy + 1                
-                    for cy in range(ub, y, -1):
-                        for cx in range(xlb, xub):
-                            if map[cy][cx] == 'R':
-                                ub = cy - 1
-                    if (ub - lb + 1) > 4:
-                        infoList.append((cDir, lb, ub))
-        if len(infoList) > 0:
-            return random.choice(infoList)
-        return None, None, None
-    
-    def _corrGenerator(self, x, y, formalDir):
-        dir, length = self._corrInfoRandom(x, y, formalDir)
-        if dir == None:
-            return
-        length = random.randint(3, length)
-        nx = x
-        ny = y
-        
-        if dir == Direction.UP:
-            for i in range(length):
-                self.map[y - i][x] = '.'
-            ny = y - length
-        elif dir == Direction.DOWN:
-            for i in range(length):
-                self.map[y + i][x] = '.'
-            ny = y + length
-        elif dir == Direction.LEFT:
-            for i in range(length):
-                self.map[y][x - i] = '.'
-            nx = x - length
-        elif dir == Direction.RIGHT:
-            for i in range(length):
-                self.map[y][x + i] = '.'
-            nx = x + length
-        
-        if nx < 1 or nx > self.w - 2 or \
-           ny < 1 or ny > self.h - 2:
-            return
-        
-        self._corrGenerator(nx, ny, dir)
-            
-    def _corrInfoRandom(self, x, y, formalDir):
-        info = []
-        if not formalDir == Direction.DOWN:
-            cy = y - 1
-            for cy in range(y - 1, max(y - 7, 0), -1):
-                if self.map[cy][x] not in ['?', '.']:
-                    break
-            if y - cy > 3:
-                info.append((Direction.UP, y - cy))
-        if not formalDir == Direction.UP:
-            cy = y + 1
-            for cy in range(y + 1, min(y + 7, self.h - 1)):
-                if self.map[cy][x] not in ['?', '.']:
-                    break
-            if cy - y > 3:
-                info.append((Direction.DOWN, cy - y))
-        if not formalDir == Direction.LEFT:
-            cx = x + 1
-            for cx in range(x + 1, min(x + 7, self.w - 1)):
-                if self.map[y][cx] not in ['?', '.']:
-                    break
-            if cx - x > 3:
-                info.append((Direction.RIGHT, cx - x))
-        if not formalDir == Direction.RIGHT:
-            cx = x - 1
-            for cx in range(x - 1, max(x - 7, 0), -1):
-                if self.map[y][cx] not in ['?', '.']:
-                    break
-            if x - cx > 3:
-                info.append((Direction.LEFT, x - cx))
-        if len(info) > 1:
-            return random.choice(info)
-        return None, None
-    
+                    self.door_list.append((jx1, jy1))
+                    self.door_list.append((jx2, jy2))
+                    corridors = self.corridor_between_points(
+                        jx1, jy1, jx2, jy2, 'top')
+                    self.corridor_list.append(corridors)
+                else:
+                    jx1 = x1_2 + 1
+                    jy1 = random.randint(y1, y1_2)
+                    jx2 = random.randint(x2, x2_2)
+                    jy2 = y2_2 + 1
+                    
+                    self.door_list.append((jx1, jy1))
+                    self.door_list.append((jx2, jy2))
+                    corridors = self.corridor_between_points(
+                        jx1, jy1, jx2, jy2, 'bottom')
+                    self.corridor_list.append(corridors)
+ 
+ 
+    def gen_level(self):
+ 
+        # build an empty dungeon, blank the room and corridor lists
+        for i in range(self.height):
+            self.level.append(['stone'] * self.width)
+        self.room_list = []
+        self.corridor_list = []
+ 
+        max_iters = self.max_rooms * 5
+ 
+        for a in range(max_iters):
+            tmp_room = self.gen_room()
+ 
+            if self.rooms_overlap or not self.room_list:
+                self.room_list.append(tmp_room)
+            else:
+                tmp_room = self.gen_room()
+                tmp_room_list = self.room_list[:]
+ 
+                if self.room_overlapping(tmp_room, tmp_room_list) is False:
+                    self.room_list.append(tmp_room)
+ 
+            if len(self.room_list) >= self.max_rooms:
+                break
+ 
+        # connect the rooms
+        for a in range(len(self.room_list) - 1):
+            self.join_rooms(self.room_list[a], self.room_list[a + 1])
+ 
+        # do the random joins
+        for a in range(self.random_connections):
+            room_1 = self.room_list[random.randint(0, len(self.room_list) - 1)]
+            room_2 = self.room_list[random.randint(0, len(self.room_list) - 1)]
+            self.join_rooms(room_1, room_2)
+ 
+        # do the spurs
+        for a in range(self.random_spurs):
+            room_1 = [random.randint(2, self.width - 2), random.randint(
+                     2, self.height - 2), 1, 1]
+            room_2 = self.room_list[random.randint(0, len(self.room_list) - 1)]
+            self.join_rooms(room_1, room_2)
+ 
+        # fill the map
+        # paint rooms
+        for room_num, room in enumerate(self.room_list):
+            for b in range(room[2]):
+                for c in range(room[3]):
+                    self.level[room[1] + c][room[0] + b] = 'floor'
+ 
+        # paint corridors
+        for corridor in self.corridor_list:
+            x1, y1 = corridor[0]
+            x2, y2 = corridor[1]
+            for width in range(abs(x1 - x2) + 1):
+                for height in range(abs(y1 - y2) + 1):
+                    self.level[min(y1, y2) + height][
+                        min(x1, x2) + width] = 'floor'
+ 
+            if len(corridor) == 3:
+                x3, y3 = corridor[2]
+ 
+                for width in range(abs(x2 - x3) + 1):
+                    for height in range(abs(y2 - y3) + 1):
+                        self.level[min(y2, y3) + height][
+                            min(x2, x3) + width] = 'floor'
+ 
+        # paint the walls
+        for row in range(1, self.height - 1):
+            for col in range(1, self.width - 1):
+                if self.level[row][col] == 'floor':
+                    if self.level[row - 1][col - 1] == 'stone':
+                        self.level[row - 1][col - 1] = 'wall'
+ 
+                    if self.level[row - 1][col] == 'stone':
+                        self.level[row - 1][col] = 'wall'
+ 
+                    if self.level[row - 1][col + 1] == 'stone':
+                        self.level[row - 1][col + 1] = 'wall'
+ 
+                    if self.level[row][col - 1] == 'stone':
+                        self.level[row][col - 1] = 'wall'
+ 
+                    if self.level[row][col + 1] == 'stone':
+                        self.level[row][col + 1] = 'wall'
+ 
+                    if self.level[row + 1][col - 1] == 'stone':
+                        self.level[row + 1][col - 1] = 'wall'
+ 
+                    if self.level[row + 1][col] == 'stone':
+                        self.level[row + 1][col] = 'wall'
+ 
+                    if self.level[row + 1][col + 1] == 'stone':
+                        self.level[row + 1][col + 1] = 'wall'
+ 
+        # paint doors
+        for door in self.door_list:
+            x, y = door
+            if (self.level[y - 1][x] == 'wall' and \
+                self.level[y + 1][x] == 'wall' and \
+                self.level[y][x - 1] == 'floor' and \
+                self.level[y][x + 1] == 'floor') or \
+               (self.level[y - 1][x] == 'floor' and \
+                self.level[y + 1][x] == 'floor' and \
+                self.level[y][x - 1] == 'wall' and \
+                self.level[y][x + 1] == 'wall'):
+                self.level[y][x] = 'door'
+                            
+    def gen_tiles_level(self):
+ 
+        for row_num, row in enumerate(self.level):
+            tmp_tiles = []
+ 
+            for col_num, col in enumerate(row):
+                if col == 'stone':
+                    tmp_tiles.append(self.tiles['stone'])
+                if col == 'floor':
+                    tmp_tiles.append(self.tiles['floor'])
+                if col == 'wall':
+                    tmp_tiles.append(self.tiles['wall'])
+                if col == 'door':
+                    tmp_tiles.append(self.tiles['door'])
+ 
+            self.tiles_level.append(''.join(tmp_tiles))
+ 
+ 
 if __name__ == '__main__':
-    map = Map(80, 60)
-    map.mapGenerator(1)
+    gen = Generator()
+    gen.gen_level()
+    gen.gen_tiles_level()
     with open('test.debug', 'w') as f:
-        for yi in map.map:
-            for xi in yi:
-                f.write(xi)
-            f.write('\n')
+        for row in gen.tiles_level:
+            f.write(row + '\n')
