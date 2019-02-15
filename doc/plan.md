@@ -3,13 +3,15 @@
  
 ### Library
  * Map
- * NPC
+ * Object
+ * Player
  * Monster
 
 ## Website
 
 ### Server
  * Flask
+ * ZODB -- Persistent
  
 ### Web
  * HTML5
