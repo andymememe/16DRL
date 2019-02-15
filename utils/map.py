@@ -12,17 +12,40 @@ import persistent
 from utils.monster import Monster
 from utils.object import Object
 
-CHARACTER_TILES = {'stone': ' ',
+CHARACTER_TILES = {# Map Objects
+                   'stone': ' ',
                    'floor': '.',
                    'wall' : '#',
-                   'door' : '+'}
+                   'door' : '+',
+                   # Acuirable Objects
+                   'money': '$',
+                   'weapon': ')',
+                   'armor': '[',
+                   'edible': '%',
+                   'scroll': '?',
+                   'wand': '/',
+                   'ring': '=',
+                   'potion': '!',
+                   'key_item': '(',
+                   'amulet': '"',
+                   # Obstacle Objects
+                   'altar': '_',
+                   'statue': "'",
+                   'obstacle': '0',
+                   'fountain': '{',
+                   # Passing Objects
+                   'detected_trap': '^',
+                   'down_stair': '>',
+                   'throne': '\\'}
 
 class Map(persistent.Persistent):
-    def __init__(self, width=70, height=60,
-                 max_rooms=15, max_objs_in_room=5, max_traps=5, max_mons=10,
+    def __init__(self, level, lastLevel=False, width=70, height=60,
+                 max_rooms=15, max_objs_in_room=30, max_traps=30, max_mons=20,
                  min_room_xy=5, max_room_xy=10,
                  rooms_overlap=False, random_connections=1,
                  random_spurs=3, tiles=CHARACTER_TILES):
+        self.level = level
+        self.lastLevel = lastLevel
         self.width = width
         self.height = height
         self.max_rooms = max_rooms
@@ -41,6 +64,8 @@ class Map(persistent.Persistent):
         self.door_list = []
         self.objs_list = []
         self.mons_list = []
+        self.start_pos = (0, 0)
+        self.end_pos = (0, 0)
         self.tiles_level = []
  
     def gen_room(self):
@@ -210,17 +235,20 @@ class Map(persistent.Persistent):
                         jx1, jy1, jx2, jy2, 'bottom')
                     self.corridor_list.append(corridors)
 
-    def gen_objs_in_room(self):
-        pass
+    def gen_objs_in_room(self, position):
+        x, y = position
 
-    def gen_traps(self):
-        pass
+    def gen_traps(self, position):
+        x, y = position
     
-    def gen_monsters(self):
-        pass
+    def gen_monsters(self, position):
+        x, y = position
 
-    def gen_start_end(self):
-        pass
+    def gen_start_end(self, positionS, positionE):
+        self.start_pos = positionS
+        self.end_pos = positionE
+        sx, sy = self.start_pos
+        ex, ey = self.end_pos
   
     def gen_level(self):
         # build an empty dungeon, blank the room and corridor lists
@@ -231,6 +259,8 @@ class Map(persistent.Persistent):
         self.door_list = []
         self.objs_list = []
         self.mons_list = []
+        self.start_pos = (0, 0)
+        self.end_pos = (0, 0)
  
         max_iters = self.max_rooms * 5
  
@@ -266,20 +296,6 @@ class Map(persistent.Persistent):
                      2, self.height - 2), 1, 1]
             room_2 = self.room_list[random.randint(0, len(self.room_list) - 1)]
             self.join_rooms(room_1, room_2)
-        
-        # do the objs in room
-        for a in range(self.max_objs_in_room):
-            self.gen_objs_in_room()
-
-        # do the traps
-        for a in range(self.max_traps):
-            self.gen_traps()
-
-        # do the monsters
-        for a in range(self.max_mons):
-            self.gen_monsters()
-        
-        self.gen_start_end()
  
         # fill the map
         # paint rooms
@@ -345,6 +361,81 @@ class Map(persistent.Persistent):
                 self.level[y][x - 1] == 'wall' and \
                 self.level[y][x + 1] == 'wall'):
                 self.level[y][x] = 'door'
+        
+        # insert objects in map
+        # insert objs in room
+        for a in range(self.max_objs_in_room):
+            room = random.choice(self.room_list[1:-1])
+            ox, oy = (random.randint(room[0], room[0] + room[2] - 1),
+                      random.randint(room[1], room[1] + room[3] - 1))
+            while not self.level[oy][ox] == 'floor':
+                room = random.choice(self.room_list[1:-1])
+                ox, oy = (random.randint(room[0], room[0] + room[2] - 1),
+                          random.randint(room[1], room[1] + room[3] - 1))
+            self.gen_objs_in_room((ox, oy))
+
+        # insert traps
+        for a in range(self.max_traps):
+            place_type = random.choice(["corr, room"])
+            if place_type == "corr":
+                corr = random.choice(self.corridor_list)
+                end_index = random.randint(1, len(corr) - 1)
+                ox, oy = (random.randint(corr[end_index - 1][0], corr[end_index][0]),
+                          random.randint(corr[end_index - 1][1], corr[end_index][1]))
+                while not self.level[oy][ox] == 'floor':
+                    corr = random.choice(self.corridor_list)
+                    end_index = random.randint(1, len(corr) - 1)
+                    ox, oy = (random.randint(corr[end_index - 1][0], corr[end_index][0]),
+                              random.randint(corr[end_index - 1][1], corr[end_index][1]))
+            elif place_type == "room":
+                room = random.choice(self.room_list[1:-1])
+                ox, oy = (random.randint(room[0], room[0] + room[2] - 1),
+                          random.randint(room[1], room[1] + room[3] - 1))
+                while not self.level[oy][ox] == 'floor':
+                    room = random.choice(self.room_list[1:-1])
+                    ox, oy = (random.randint(room[0], room[0] + room[2] - 1),
+                              random.randint(room[1], room[1] + room[3] - 1))
+            self.gen_traps((ox, oy))
+
+        # insert monsters
+        for a in range(self.max_mons):
+            place_type = random.choice(["corr, room"])
+            if place_type == "corr":
+                corr = random.choice(self.corridor_list)
+                end_index = random.randint(1, len(corr) - 1)
+                ox, oy = (random.randint(corr[end_index - 1][0], corr[end_index][0]),
+                          random.randint(corr[end_index - 1][1], corr[end_index][1]))
+                while not self.level[oy][ox] == 'floor':
+                    corr = random.choice(self.corridor_list)
+                    end_index = random.randint(1, len(corr) - 1)
+                    ox, oy = (random.randint(corr[end_index - 1][0], corr[end_index][0]),
+                              random.randint(corr[end_index - 1][1], corr[end_index][1]))
+            elif place_type == "room":
+                room = random.choice(self.room_list[1:-1])
+                ox, oy = (random.randint(room[0], room[0] + room[2] - 1),
+                          random.randint(room[1], room[1] + room[3] - 1))
+                while not self.level[oy][ox] == 'floor':
+                    room = random.choice(self.room_list[1:-1])
+                    ox, oy = (random.randint(room[0], room[0] + room[2] - 1),
+                              random.randint(room[1], room[1] + room[3] - 1))
+            self.gen_monsters((ox, oy))
+        
+        # Start & End
+        # Start
+        room = self.room_list[0]
+        sx, sy = (random.randint(room[0], room[0] + room[2] - 1),
+                  random.randint(room[1], room[1] + room[3] - 1))
+        while not self.level[oy][ox] == 'floor':
+            sx, sy = (random.randint(room[0], room[0] + room[2] - 1),
+                      random.randint(room[1], room[1] + room[3] - 1))
+        # End
+        room = self.room_list[-1]
+        ex, ey = (random.randint(room[0], room[0] + room[2] - 1),
+                  random.randint(room[1], room[1] + room[3] - 1))
+        while not self.level[oy][ox] == 'floor':
+            ex, ey = (random.randint(room[0], room[0] + room[2] - 1),
+                      random.randint(room[1], room[1] + room[3] - 1))
+        self.gen_start_end((sx, sy), (ex, ey))
                             
     def gen_tiles_level(self):
         for row_num, row in enumerate(self.level):
@@ -362,6 +453,54 @@ class Map(persistent.Persistent):
  
             self.tiles_level.append(''.join(tmp_tiles))
     
+    def check_path(self, x, y):
+        # Check Door
+        if self.level[y - 1][x] == 'door' or \
+           self.level[y + 1][x] == 'door' or \
+           self.level[y][x - 1] == 'door' or \
+           self.level[y][x + 1] == 'door':
+            return False
+        
+        # Check Path
+        if self.level[y - 1][x - 1] == 'floor' and \
+           self.level[y - 1][x] == 'floor' and \
+           self.level[y - 1][x + 1] == 'floor':
+            return True
+        if self.level[y + 1][x - 1] == 'floor' and \
+           self.level[y + 1][x] == 'floor' and \
+           self.level[y + 1][x + 1] == 'floor':
+            return True
+        if self.level[y - 1][x - 1] == 'floor' and \
+           self.level[y][x - 1] == 'floor' and \
+           self.level[y + 1][x - 1] == 'floor':
+            return True
+        if self.level[y - 1][x + 1] == 'floor' and \
+           self.level[y][x + 1] == 'floor' and \
+           self.level[y + 1][x + 1] == 'floor':
+            return True
+
+        # Check Corner Path
+        if self.level[y - 1][x] == 'floor' and \
+           self.level[y - 1][x + 1] == 'floor' and \
+           self.level[y][x + 1] == 'floor':
+            return True
+        if self.level[y][x + 1] == 'floor' and \
+           self.level[y + 1][x + 1] == 'floor' and \
+           self.level[y + 1][x] == 'floor':
+            return True
+        if self.level[y + 1][x] == 'floor' and \
+           self.level[y + 1][x - 1] == 'floor' and \
+           self.level[y][x - 1] == 'floor':
+            return True
+        if self.level[y][x - 1] == 'floor' and \
+           self.level[y - 1][x - 1] == 'floor' and \
+           self.level[y - 1][x] == 'floor':
+            return True
+        
+        # No Path
+        return False
+
+
     def set_player(self, player):
         pass
     
