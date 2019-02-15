@@ -1,4 +1,4 @@
-# generator-1.py, a simple python dungeon generator by
+# map.py, a simple python dungeon generator by
 # James Spencer <jamessp [at] gmail.com>.
 
 # To the extent possible under law, the person who associated CC0 with
@@ -8,19 +8,27 @@
 # You should have received a copy of the CC0 legalcode along with this
 # work. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 import random
- 
+import persistent
+from utils.monster import Monster
+from utils.object import Object
+
 CHARACTER_TILES = {'stone': ' ',
                    'floor': '.',
                    'wall' : '#',
                    'door' : '+'}
 
-class Generator():
-    def __init__(self, width=70, height=60, max_rooms=15, min_room_xy=5,
-                 max_room_xy=10, rooms_overlap=False, random_connections=1,
+class Map(persistent.Persistent):
+    def __init__(self, width=70, height=60,
+                 max_rooms=15, max_objs_in_room=5, max_traps=5, max_mons=10,
+                 min_room_xy=5, max_room_xy=10,
+                 rooms_overlap=False, random_connections=1,
                  random_spurs=3, tiles=CHARACTER_TILES):
         self.width = width
         self.height = height
         self.max_rooms = max_rooms
+        self.max_objs_in_room = max_objs_in_room
+        self.max_traps = max_traps
+        self.max_mons = max_mons
         self.min_room_xy = min_room_xy
         self.max_room_xy = max_room_xy
         self.rooms_overlap = rooms_overlap
@@ -31,6 +39,8 @@ class Generator():
         self.room_list = []
         self.corridor_list = []
         self.door_list = []
+        self.objs_list = []
+        self.mons_list = []
         self.tiles_level = []
  
     def gen_room(self):
@@ -64,8 +74,7 @@ class Generator():
                 return True
  
         return False
- 
- 
+  
     def corridor_between_points(self, x1, y1, x2, y2, join_type='either'):
         if x1 == x2 and y1 == y2 or x1 == x2 or y1 == y2:
             return [(x1, y1), (x2, y2)]
@@ -200,18 +209,32 @@ class Generator():
                     corridors = self.corridor_between_points(
                         jx1, jy1, jx2, jy2, 'bottom')
                     self.corridor_list.append(corridors)
- 
- 
+
+    def gen_objs_in_room(self):
+        pass
+
+    def gen_traps(self):
+        pass
+    
+    def gen_monsters(self):
+        pass
+
+    def gen_start_end(self):
+        pass
+  
     def gen_level(self):
- 
         # build an empty dungeon, blank the room and corridor lists
         for i in range(self.height):
             self.level.append(['stone'] * self.width)
         self.room_list = []
         self.corridor_list = []
+        self.door_list = []
+        self.objs_list = []
+        self.mons_list = []
  
         max_iters = self.max_rooms * 5
  
+        # create room
         for a in range(max_iters):
             tmp_room = self.gen_room()
  
@@ -243,6 +266,20 @@ class Generator():
                      2, self.height - 2), 1, 1]
             room_2 = self.room_list[random.randint(0, len(self.room_list) - 1)]
             self.join_rooms(room_1, room_2)
+        
+        # do the objs in room
+        for a in range(self.max_objs_in_room):
+            self.gen_objs_in_room()
+
+        # do the traps
+        for a in range(self.max_traps):
+            self.gen_traps()
+
+        # do the monsters
+        for a in range(self.max_mons):
+            self.gen_monsters()
+        
+        self.gen_start_end()
  
         # fill the map
         # paint rooms
@@ -310,7 +347,6 @@ class Generator():
                 self.level[y][x] = 'door'
                             
     def gen_tiles_level(self):
- 
         for row_num, row in enumerate(self.level):
             tmp_tiles = []
  
@@ -325,12 +361,13 @@ class Generator():
                     tmp_tiles.append(self.tiles['door'])
  
             self.tiles_level.append(''.join(tmp_tiles))
- 
- 
-if __name__ == '__main__':
-    gen = Generator()
-    gen.gen_level()
-    gen.gen_tiles_level()
-    with open('test.debug', 'w') as f:
-        for row in gen.tiles_level:
-            f.write(row + '\n')
+    
+    def set_player(self, player):
+        pass
+    
+    def update(self, player, command):
+        pass
+    
+    def show_map(self, cameraX, cameraY, player):
+        displayMap = []
+        return displayMap
