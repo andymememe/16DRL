@@ -1,13 +1,19 @@
-import persistent
 import datetime
 
-class Player(persistent.Persistent):
+class Player():
     def __init__(self, playerName, hashID=None):
+        # Coordination
         self.x = 0
         self.y = 0
-        self.playerName = playerName
+        
+        # Data
+        self.level = 1
+        self.hp = 100
+        self.score = 0
 
-        # Hash ID
+        # ID
+        self.playerName = playerName
+        self.finished = False
         if hashID is None:
             self.hashID = hash(playerName + str(datetime.datetime.now()))
         else:

@@ -1,7 +1,11 @@
-import persistent
-
-class Object(persistent.Persistent):
-    def __init__(self, x, y, obj_type):
+class Object():
+    def __init__(self, x, y, level):
         self.x = x
         self.y = y
-        self.obj_type = obj_type
+        self.level = level
+        self.attr = {}
+        
+        self._gen_obj()
+    
+    def _gen_obj(self):
+        self.obj_type = None

@@ -8,7 +8,6 @@
 # You should have received a copy of the CC0 legalcode along with this
 # work. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 import random
-import persistent
 from utils.monster import Monster
 from utils.object import Object
 
@@ -41,7 +40,7 @@ CHARACTER_TILES = {# Map Objects
                    'down_stair': '>',
                    'throne': '\\'}
 
-class Map(persistent.Persistent):
+class Map():
     def __init__(self, level, lastLevel=False, width=70, height=60,
                  max_rooms=15, max_objs_in_room=30, max_traps=30, max_mons=20,
                  min_room_xy=5, max_room_xy=10,
@@ -241,19 +240,17 @@ class Map(persistent.Persistent):
 
     def gen_objs_in_room(self, position):
         x, y = position
-        obj_type = 'armor'
-        self.objs_list.append(Object(x, y, obj_type))
-        self.level[y][x] = obj_type
+        self.objs_list.append(Object(x, y, self.level))
+        self.level[y][x] = self.obj_type
 
     def gen_traps(self, position):
         x, y = position
-        self.traps_list.append((x, y))
+        self.traps_list.append((x, y, 0))
         self.level[y][x] = 'trap'
     
     def gen_monsters(self, position):
         x, y = position
-        sym = 'M'
-        self.mons_list.append(Monster(x, y, sym))
+        self.mons_list.append(Monster(x, y, self.level))
         self.level[y][x] = 'monster'
 
     def gen_start_end(self, positionS, positionE):
@@ -261,7 +258,10 @@ class Map(persistent.Persistent):
         self.end_pos = positionE
         sx, sy = self.start_pos
         ex, ey = self.end_pos
-        self.level[ey][ex] = 'down_stair'
+        if self.lastLevel:
+            self.level[ey][ex] = 'throne'
+        else:
+            self.level[ey][ex] = 'down_stair'
   
     def gen_level(self):
         # build an empty dungeon, blank the room and corridor lists
