@@ -33,7 +33,7 @@ CHARACTER_TILES = {# Map Objects
                    'obstacle': '0',
                    'fountain': '{',
                    # Passing Objects
-                   'palyer': '@',
+                   'player': '@',
                    'trap': '.',
                    'monster': '.',
                    'detected_trap': '^',
@@ -41,12 +41,12 @@ CHARACTER_TILES = {# Map Objects
                    'throne': '\\'}
 
 class Map():
-    def __init__(self, level, lastLevel=False, width=70, height=60,
+    def __init__(self, map_level, lastLevel=False, width=70, height=60,
                  max_rooms=15, max_objs_in_room=30, max_traps=30, max_mons=20,
                  min_room_xy=5, max_room_xy=10,
                  rooms_overlap=False, random_connections=1,
                  random_spurs=3, tiles=CHARACTER_TILES):
-        self.level = level
+        self.map_level = map_level
         self.lastLevel = lastLevel
         self.width = width
         self.height = height
@@ -70,6 +70,12 @@ class Map():
         self.start_pos = (0, 0)
         self.end_pos = (0, 0)
         self.tiles_level = []
+    
+    def __repr__(self):
+        return "the repr" # TODO: Modify Return
+        
+    def __str__(self):
+        return "the str" # TODO: Modify Return
  
     def gen_room(self):
         x, y, w, h = 0, 0, 0, 0
@@ -240,8 +246,9 @@ class Map():
 
     def gen_objs_in_room(self, position):
         x, y = position
-        self.objs_list.append(Object(x, y, self.level))
-        self.level[y][x] = self.obj_type
+        obj = Object(x, y, self.map_level)
+        self.objs_list.append(obj)
+        self.level[y][x] = obj.obj_type
 
     def gen_traps(self, position):
         x, y = position
@@ -250,7 +257,7 @@ class Map():
     
     def gen_monsters(self, position):
         x, y = position
-        self.mons_list.append(Monster(x, y, self.level))
+        self.mons_list.append(Monster(x, y, self.map_level))
         self.level[y][x] = 'monster'
 
     def gen_start_end(self, positionS, positionE):
@@ -461,7 +468,7 @@ class Map():
             for col_num, col in enumerate(row):
                 tmp_tiles.append(self.tiles[col])
  
-            self.tiles_level.append(''.join(tmp_tiles))
+            self.tiles_level.append(list(tmp_tiles))
     
     def check_path(self, x, y):
         # Check Door
@@ -522,16 +529,20 @@ class Map():
         cameraY = min(max(4, player.y), self.height - 5)
 
         level = list(self.tiles_level)
-        level[player.y] = level[player.y][:player.x] + '@' + level[player.y][player.x + 1:]
+        level[player.y][player.x] = '@'
         for mon in self.mons_list:
             if mon.x < cameraX + 5 and mon.y < cameraY + 5:
-                level[mon.y] = level[mon.y][:mon.x] + mon.sym + level[mon.y][mon.x + 1:]
-        displayMap = [row[cameraX - 4:cameraX + 5] for row in level[cameraY - 4:cameraY + 5]]
+                level[mon.y][mon.x] = mon.sym
+        displayMap = [
+            row[
+                cameraX - 4:cameraX + 5
+            ] for row in level[cameraY - 4:cameraY + 5]
+        ]
         return displayMap
     
     def show_total_map(self, player):
         level = list(self.tiles_level)
-        level[player.y] = level[player.y][:player.x] + '@' + level[player.y][player.x + 1:]
+        level[player.y][player.x] = '@'
         for mon in self.mons_list:
-            level[mon.y] = level[mon.y][:mon.x] + mon.sym + level[mon.y][mon.x + 1:]
+            level[mon.y][mon.x] = mon.sym
         return level
