@@ -35,4 +35,6 @@ class Monster():
         self.y = y
     
     def combat(self, hit):
-        self.hp = max(0, self.hp - max(0, hit - self.dfn))
+        if random.randint(1, 100) > min(75, 25 + (self.level - 1) * 4.2) or \
+           (hit - self.dfn) > 50:
+            self.hp = max(0, self.hp - max(0, hit - self.dfn))

@@ -14,6 +14,7 @@ OBJ_LIST = [# Money (usage = 0)
             'potion']
 
 ATTR_LIST = ['atk', 'atk_mul', 'dfn', 'dfn_mul', 'hp', 'hp_mul']
+ATTR_USE_LIST = ['atk', 'dfn', 'hp']
 
 class Object():
     def __init__(self, x, y, level, key_item=False):
@@ -62,15 +63,9 @@ class Object():
             self.attrs['hp'] = random.choice([10, 25, 50, 100, 250, 500, 1000])
         elif self.obj_type == 'scroll':
             self.usage = 2
-            attr = random.choice(ATTR_LIST)
-            if 'mul' in attr:
-                self.attrs[attr] = 2 + random.randint(0, self.level // 13)
-            else:
-                self.attrs[attr] = random.randint(10, 10 + self.level * 15)
+            attr = random.choice(ATTR_USE_LIST)
+            self.attrs[attr] = random.randint(10, 10 + self.level * 15)
         elif self.obj_type == 'potion':
             self.usage = 2
-            attr = random.choice(ATTR_LIST)
-            if 'mul' in attr:
-                self.attrs[attr] = 2 + random.randint(0, self.level // 13)
-            else:
-                self.attrs[attr] = random.randint(10, 10 + self.level * 15)
+            attr = random.choice(ATTR_USE_LIST)
+            self.attrs[attr] = random.randint(10, 10 + self.level * 15)
