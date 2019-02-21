@@ -72,10 +72,12 @@ class Map():
         self.tiles_level = []
     
     def __repr__(self):
-        return "the repr" # TODO: Modify Return
+        return "lv.{0} => w: {1}, h: {2}".format(self.level,
+                                                 self.width,
+                                                 self.height)
         
     def __str__(self):
-        return "the str" # TODO: Modify Return
+        return "lv.{0}".format(self.level)
  
     def gen_room(self):
         x, y, w, h = 0, 0, 0, 0

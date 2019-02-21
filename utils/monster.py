@@ -14,10 +14,13 @@ class Monster():
         self._gen_mon()
     
     def __repr__(self):
-        return "the repr" # TODO: Modify Return
+        return "{0} => hp: {1}, atk: {2}, dfn: {3}".format(self.sym,
+                                                           self.hp,
+                                                           self.atk,
+                                                           self.dfn)
         
     def __str__(self):
-        return "the str" # TODO: Modify Return
+        return self.sym
     
     def _gen_mon(self):
         self.sym = random.choice(SYMSET)
@@ -26,3 +29,10 @@ class Monster():
         self.atk = random.randint(1, self.level * 5)
         self.dfn = random.randint(1, self.level * 5)
         self.hp = random.randint(10, self.level * 100)
+    
+    def move(self, x, y):
+        self.x = x
+        self.y = y
+    
+    def combat(self, hit):
+        self.hp = max(0, self.hp - max(0, hit - self.dfn))

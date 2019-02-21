@@ -24,18 +24,34 @@ class Player():
             self.hashID = hashID
     
     def __repr__(self):
-        return "the repr" # TODO: Modify Return
+        return "lv.{0} => hp: {1}, atk: {2}, dfn: {3}".format(self.level,
+                                                              self.hp,
+                                                              self.atk,
+                                                              self.dfn)
         
     def __str__(self):
-        return "the str" # TODO: Modify Return
+        return "lv.{0}".format(self.level)
     
     def setStartPoint(self, x, y):
         self.x = x
         self.y = y
     
+    def move(self, x, y):
+        self.x = x
+        self.y = y
+    
+    def combat(self, hit):
+        self.hp = max(0, self.hp - hit)
+        self.finished = True
+    
     def addInventory(self, obj):
         if obj.usage == 0:
             self.score += obj.attr['score']
-            return
         else:
             self.inventory.append(obj)
+    
+    def wear(self, index):
+        pass
+    
+    def use(self, index):
+        pass
