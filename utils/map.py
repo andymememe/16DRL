@@ -16,7 +16,8 @@ CHARACTER_TILES = {# Map Objects
                    'floor': '.',
                    'wall' : '#',
                    'door' : '+',
-                   # Acuirable Objects
+                   # Acquirable Objects
+                   'object': '.',
                    'money': '$',
                    'weapon': ')',
                    'armor': '[',
@@ -33,7 +34,7 @@ CHARACTER_TILES = {# Map Objects
                    'obstacle': '0',
                    'fountain': '{',
                    # Passing Objects
-                   'player': '@',
+                   'player': '.',
                    'trap': '.',
                    'monster': '.',
                    'detected_trap': '^',
@@ -65,7 +66,6 @@ class Map():
         self.corridor_list = []
         self.door_list = []
         self.objs_list = []
-        self.traps_list = []
         self.mons_list = []
         self.start_pos = (0, 0)
         self.end_pos = (0, 0)
@@ -250,11 +250,11 @@ class Map():
         x, y = position
         obj = Object(x, y, self.map_level)
         self.objs_list.append(obj)
-        self.level[y][x] = obj.obj_type
+        # self.level[y][x] = obj.obj_type
+        self.level[y][x] = 'object'
 
     def gen_traps(self, position):
         x, y = position
-        self.traps_list.append((x, y, 0))
         self.level[y][x] = 'trap'
     
     def gen_monsters(self, position):
@@ -471,6 +471,12 @@ class Map():
                 tmp_tiles.append(self.tiles[col])
  
             self.tiles_level.append(list(tmp_tiles))
+        
+        for mon in self.mons_list:
+            self.tiles_level[mon.y][mon.x] = mon.sym
+        
+        for obj in self.objs_list:
+            self.tiles_level[obj.y][obj.x] = self.tiles[self.obj_type]
     
     def check_path(self, x, y):
         # Check Door
@@ -523,8 +529,11 @@ class Map():
     def set_player(self, player):
         player.setStartPoint(self.start_pos[0], self.start_pos[1])
     
-    def update(self, player, command):
-        pass
+    def update(self, player, dir):
+        dirs = ['up', 'down', 'left', 'right']
+        dirs.remove(dir)
+        
+        # TODO: Next step check
     
     def show_map(self, player):
         cameraX = min(max(4, player.x), self.width - 5)
@@ -532,9 +541,6 @@ class Map():
 
         level = list(self.tiles_level)
         level[player.y][player.x] = '@'
-        for mon in self.mons_list:
-            if mon.x < cameraX + 5 and mon.y < cameraY + 5:
-                level[mon.y][mon.x] = mon.sym
         displayMap = [
             row[
                 cameraX - 4:cameraX + 5
@@ -545,6 +551,4 @@ class Map():
     def show_total_map(self, player):
         level = list(self.tiles_level)
         level[player.y][player.x] = '@'
-        for mon in self.mons_list:
-            level[mon.y][mon.x] = mon.sym
         return level
