@@ -533,7 +533,45 @@ class Map():
         dirs = ['up', 'down', 'left', 'right']
         dirs.remove(dir)
         
-        # TODO: Next step check
+        # Next step check
+        next_step_state = 'floor'
+        if dir == 'up':
+            next_step_state = self.level[player.y - 1][player.x]
+        elif dir == 'down':
+            next_step_state = self.level[player.y + 1][player.x]
+        elif dir == 'left':
+            next_step_state = self.level[player.y][player.x - 1]
+        elif dir == 'right':
+            next_step_state = self.level[player.y][player.x + 1]
+        
+        if next_step_state == 'object':
+            pass
+        elif next_step_state == 'door':
+            pass
+        elif next_step_state == 'stone':
+            pass
+        elif next_step_state == 'floor':
+            pass
+        elif next_step_state == 'altar':
+            pass
+        elif next_step_state == 'statue':
+            pass
+        elif next_step_state == 'obstacle':
+            pass
+        elif next_step_state == 'fountain':
+            pass
+        elif next_step_state == 'monster':
+            pass
+        elif next_step_state == 'trap':
+            pass
+        elif next_step_state == 'detected_trap':
+            pass
+        elif next_step_state == 'down_stair':
+            pass
+        elif next_step_state == 'throne':
+            pass
+        
+        # TODO: Battle Check
     
     def show_map(self, player):
         cameraX = min(max(4, player.x), self.width - 5)
