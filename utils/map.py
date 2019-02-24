@@ -529,49 +529,70 @@ class Map():
     def set_player(self, player):
         player.setStartPoint(self.start_pos[0], self.start_pos[1])
     
-    def update(self, player, dir):
-        dirs = ['up', 'down', 'left', 'right']
-        dirs.remove(dir)
-        
+    def player_move(self, player, dir):        
         # Next step check
-        next_step_state = 'floor'
+        next_step_state = 'player'
+        ny = player.y
+        nx = player.x
         if dir == 'up':
             next_step_state = self.level[player.y - 1][player.x]
+            ny = player.y - 1
         elif dir == 'down':
             next_step_state = self.level[player.y + 1][player.x]
+            ny = player.y + 1
         elif dir == 'left':
             next_step_state = self.level[player.y][player.x - 1]
+            nx = player.x - 1
         elif dir == 'right':
             next_step_state = self.level[player.y][player.x + 1]
+            nx = player.x + 1
         
         if next_step_state == 'object':
             pass
         elif next_step_state == 'door':
-            pass
-        elif next_step_state == 'stone':
-            pass
+            self.level[ny][nx] = 'floor'
+            player.move(nx, ny)
         elif next_step_state == 'floor':
-            pass
+            player.move(nx, ny)
         elif next_step_state == 'altar':
-            pass
+            player.heal(50)
         elif next_step_state == 'statue':
-            pass
-        elif next_step_state == 'obstacle':
-            pass
+            player.heal(10)
         elif next_step_state == 'fountain':
-            pass
+            player.heal(20)
         elif next_step_state == 'monster':
             pass
         elif next_step_state == 'trap':
-            pass
+            self.level[ny][nx] = 'detected_trap'
+            player.setHit(1)
+            player.move(nx, ny)
         elif next_step_state == 'detected_trap':
-            pass
+            player.trapped()
+            player.move(nx, ny)
         elif next_step_state == 'down_stair':
-            pass
+            self.level += 1
+            self.reset(player)
         elif next_step_state == 'throne':
-            pass
-        
-        # TODO: Battle Check
+            player.victory()
+    
+    def update(self, player):
+        for mon in mons_list:
+            if abs(mon.x - player.x) < 10 and abs(mon.y - player.y) < 10:
+                if abs(mon.x - player.x) == 1 or abs(mon.y - player.y) == 1:
+                    player.combat(mon.atk)
+                else:
+                    dx = 0
+                    dy = 0
+                    if not player.x - mon.x == 0:
+                        dx = (player.x - mon.x) // abs(player.x - mon.x)
+                    if not player.y - mon.y == 0:
+                        dy = (player.y - mon.y) // abs(player.y - mon.y)
+                    mon.move(mon.x + dx, mon.y + dy)
+    
+    def reset(self, player):
+        self.gen_level()
+        self.gen_tiles_level()
+        self.set_player(player)
     
     def show_map(self, player):
         cameraX = min(max(4, player.x), self.width - 5)

@@ -13,8 +13,8 @@ OBJ_LIST = [# Money (usage = 0)
             'scroll',
             'potion']
 
-ATTR_LIST = ['atk', 'atk_mul', 'dfn', 'dfn_mul', 'hp', 'hp_mul']
-ATTR_USE_LIST = ['atk', 'dfn', 'hp']
+ATTR_LIST = ['atk', 'atk_mul', 'dfn', 'dfn_mul', 'max_hp']
+ATTR_USE_LIST = ['atk', 'dfn', 'hp', 'max_hp']
 
 class Object():
     def __init__(self, x, y, level, key_item=False):

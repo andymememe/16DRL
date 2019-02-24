@@ -9,10 +9,10 @@ class Player():
         # Data
         self.level = 1
         self.score = 0
+        self.max_hp = 100
         self.hp = 100
         self.atk = 6
         self.dfn = 6
-        self.hp_mul = 1
         self.atk_mul = 1
         self.dfn_mul = 1
         self.inventory = []
@@ -41,9 +41,34 @@ class Player():
     def __str__(self):
         return "lv.{0}".format(self.level)
     
+    def getInventory(self):
+        return list(self.inventory)
+    
+    def getWearable(self):
+        return [i if i.usage == 1 else None for i in self.invertory]
+    
+    def getUsable(self):
+        return [i if i.usage == 2 else None for i in self.invertory]
+    
     def setStartPoint(self, x, y):
         self.x = x
         self.y = y
+    
+    def setHit(self, hit):
+        self.hp = max(0, self.hp - hit)
+        self.finished = self.hp <= 0
+    
+    def setInventory(self, obj):
+        if obj.usage == 0:
+            self.score += obj.attr['score']
+        else:
+            self.inventory.append(obj)
+    
+    def getDfn(self):
+        return self.dfn * self.dfn_mul
+        
+    def getAtk(self):
+        return self.atk * self.atk_mul
     
     def move(self, x, y):
         self.x = x
@@ -51,14 +76,7 @@ class Player():
     
     def combat(self, hit):
         if random.randint(1, 100) < min(75, 25 + (self.level - 1) * 4.2):
-            self.hp = max(0, self.hp - hit)
-            self.finished = self.hp <= 0
-    
-    def addInventory(self, obj):
-        if obj.usage == 0:
-            self.score += obj.attr['score']
-        else:
-            self.inventory.append(obj)
+            self.setHit(max(0, hit - self.getDfn()))
     
     def wear(self, index):
         obj = self.inventory[index]
@@ -82,29 +100,26 @@ class Player():
                     self.atk -= temp.attrs[k]
                 elif k == 'dfn':
                     self.dfn -= temp.attrs[k]
-                elif k == 'hp:'
-                    self.hp -= temp.attrs[k]
+                elif k == 'max_hp:'
+                    self.max_hp -= temp.attrs[k]
                 elif k == 'atk_mul':
                     self.atk_mul -= obj.attrs[k]
                 elif k == 'dfn_mul':
                     self.dfn_mul -= obj.attrs[k]
-                elif k == 'hp_mul:'
-                    self.hp_mul -= obj.attrs[k]
             self.inventory.append(temp)
         for k in obj.attrs:
             if k == 'atk':
                 self.atk += obj.attrs[k]
             elif k == 'dfn':
                 self.dfn += obj.attrs[k]
-            elif k == 'hp':
-                self.hp += obj.attrs[k]
+            elif k == 'max_hp':
+                self.max_hp += obj.attrs[k]
             elif k == 'atk_mul':
                 self.atk_mul += obj.attrs[k]
             elif k == 'dfn_mul':
                 self.dfn_mul += obj.attrs[k]
-            elif k == 'hp_mul:'
-                self.hp_mul += obj.attrs[k]
         self.equipped[slot] = obj
+        self.inventory.remove(obj)
     
     def use(self, index):
         obj = self.inventory[index]
@@ -114,5 +129,13 @@ class Player():
             elif k == 'dfn':
                 self.dfn += obj.attrs[k]
             elif k == 'hp':
-                self.hp += obj.attrs[k]
+                self.heal(obj.attrs[k])
+            elif k == 'max_hp':
+                self.max_hp += obj.attrs[k]
         self.inventory.remove(obj)
+    
+    def heal(self, heal_hp):
+        self.hp = min(self.max_hp, self.hp + heal_hp)
+    
+    def victory(self):
+        self.finished = True

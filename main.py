@@ -12,9 +12,7 @@ if __name__ == "__main__":
         print('Loading debug map...')
         map = Map(1)
         player = Player('Test')
-        map.gen_level()
-        map.gen_tiles_level()
-        map.set_player(player)
+        map.reset(player)
         showMap = map.show_map(player)
         level = map.show_total_map(player)
 
