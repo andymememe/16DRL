@@ -42,13 +42,14 @@ CHARACTER_TILES = {# Map Objects
                    'throne': '\\'}
 
 class Map():
-    def __init__(self, map_level, lastLevel=False, width=70, height=60,
+    def __init__(self, max_level, width=70, height=60,
                  max_rooms=15, max_objs_in_room=30, max_traps=30, max_mons=20,
                  min_room_xy=5, max_room_xy=10,
                  rooms_overlap=False, random_connections=1,
                  random_spurs=3, tiles=CHARACTER_TILES):
-        self.map_level = map_level
-        self.lastLevel = lastLevel
+        self.map_level = 1
+        self.max_level = max_level
+        self.lastLevel = self.max_level == self.map_level
         self.width = width
         self.height = height
         self.max_rooms = max_rooms
@@ -70,6 +71,7 @@ class Map():
         self.start_pos = (0, 0)
         self.end_pos = (0, 0)
         self.tiles_level = []
+        self.logs = []
     
     def __repr__(self):
         return "lv.{0} => w: {1}, h: {2}".format(self.level,
@@ -527,6 +529,8 @@ class Map():
 
 
     def set_player(self, player):
+        self.logs.append('{0} started on lv. {1}'.format(player.playerName,
+                                                         self.map_level))
         player.setStartPoint(self.start_pos[0], self.start_pos[1])
     
     def player_move(self, player, dir):        
@@ -548,38 +552,84 @@ class Map():
             nx = player.x + 1
         
         if next_step_state == 'object':
-            pass
+            for obj in objs_list:
+                if obj.x == nx and obj.y == ny:
+                    player.setInventory(obj)
+                    objs_list.remove(obj)
+                    self.logs.append('{0} got a {1}.'.format(
+                        player.playerName,
+                        obj.obj_type
+                    ))
+                    break
         elif next_step_state == 'door':
+            self.logs.append('{0} opened a door.'.format(player.playerName))
             self.level[ny][nx] = 'floor'
             player.move(nx, ny)
         elif next_step_state == 'floor':
             player.move(nx, ny)
         elif next_step_state == 'altar':
             player.heal(50)
+            self.logs.append('{0} used an altar.'.format(player.playerName))
+            self.logs.append('{0} recovered 50 hp.'.format(player.playerName))
         elif next_step_state == 'statue':
             player.heal(10)
+            self.logs.append('{0} used a statue.'.format(player.playerName))
+            self.logs.append('{0} recovered 10 hp.'.format(player.playerName))
         elif next_step_state == 'fountain':
             player.heal(20)
+            self.logs.append('{0} used a fountain.'.format(player.playerName))
+            self.logs.append('{0} recovered 20 hp.'.format(player.playerName))
         elif next_step_state == 'monster':
-            pass
+            for mon in mons_list:
+                if mon.x == nx and mon.y == ny:
+                    hit, lose_hp = mon.combat(player.atk)
+                    if hit:
+                        self.logs.append(
+                            'Monster got hit and lose {1} hp.'.format(lose_hp)
+                        )
+                    else:
+                        self.logs.append(
+                            '{0}\'s attack is missed'.format(player.playerName)
+                        )
+                    break
         elif next_step_state == 'trap':
             self.level[ny][nx] = 'detected_trap'
             player.setHit(1)
             player.move(nx, ny)
+            self.logs.append('{0} stepped on a trap.'.format(player.playerName))
+            self.logs.append('{0} lose 1 hp.'.format(player.playerName))
         elif next_step_state == 'detected_trap':
-            player.trapped()
+            player.setHit(1)
             player.move(nx, ny)
+            self.logs.append('{0} stepped on a trap.'.format(player.playerName))
+            self.logs.append('{0} lose 1 hp.'.format(player.playerName))
         elif next_step_state == 'down_stair':
-            self.level += 1
+            self.map_level += 1
+            self.lastLevel = self.max_level == self.map_level
             self.reset(player)
+            player.setLevel(self.map_level)
+            self.logs.append('{0} went to the lv. {1}.'.format(
+                player.playerName,
+                self.map_level
+            ))
         elif next_step_state == 'throne':
             player.victory()
+            self.logs.append('{0} found the throne.'.format(player.playerName))
     
     def update(self, player):
         for mon in mons_list:
             if abs(mon.x - player.x) < 10 and abs(mon.y - player.y) < 10:
                 if abs(mon.x - player.x) == 1 or abs(mon.y - player.y) == 1:
-                    player.combat(mon.atk)
+                    hit, lose_hp = player.combat(mon.atk)
+                    if hit:
+                        self.logs.append(
+                            '{0} got hit and lose {1} hp.'.format(
+                                player.playerName,
+                                lose_hp
+                            )
+                        )
+                    else:
+                        self.logs.append('The monster\'s attack is missed')
                 else:
                     dx = 0
                     dy = 0

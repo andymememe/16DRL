@@ -1,0 +1,19 @@
+<!doctype html>
+<html>
+    <head>
+        <title>16DRL</title>
+        <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+        {% block jsfile %}{% endblock %}
+    </head>
+    <body>
+        <nav>
+            <h1>16DRL</h1>
+        </nav>
+        <section class="content">
+            <header>
+                {% block header %}{% endblock %}
+            </header>
+            {% block content %}{% endblock %}
+        </section>
+    </body>
+</html>

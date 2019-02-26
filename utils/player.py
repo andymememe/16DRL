@@ -28,9 +28,10 @@ class Player():
         self.playerName = playerName
         self.finished = False
         if hashID is None:
-            self.hashID = hash(playerName + str(datetime.datetime.now()))
+            self.hashID = '16DRL_' + \
+                          hash(playerName + str(datetime.datetime.now()))
         else:
-            self.hashID = hashID
+            self.hashID = '16DRL_' + hashID
     
     def __repr__(self):
         return "lv.{0} => hp: {1}, atk: {2}, dfn: {3}".format(self.level,
@@ -64,6 +65,9 @@ class Player():
         else:
             self.inventory.append(obj)
     
+    def setLevel(self, level):
+        self.level = level
+    
     def getDfn(self):
         return self.dfn * self.dfn_mul
         
@@ -77,8 +81,10 @@ class Player():
     def combat(self, hit):
         if random.randint(1, 100) < min(75, 25 + (self.level - 1) * 4.2):
             self.setHit(max(0, hit - self.getDfn()))
+            return True, max(0, hit - self.getDfn())
+        return False, 0
     
-    def wear(self, index):
+    def wear(self, index, map):
         obj = self.inventory[index]
         slot = ''
         if obj.obj_type in ['weapon', 'wand']:
@@ -120,8 +126,10 @@ class Player():
                 self.dfn_mul += obj.attrs[k]
         self.equipped[slot] = obj
         self.inventory.remove(obj)
+        map.logs.append('{0} wore a(n) {1}.'.format(self.playerName,
+                                                    obj.obj_type))
     
-    def use(self, index):
+    def use(self, index, map):
         obj = self.inventory[index]
         for k in obj.attrs:
             if k == 'atk':
@@ -133,6 +141,8 @@ class Player():
             elif k == 'max_hp':
                 self.max_hp += obj.attrs[k]
         self.inventory.remove(obj)
+        map.logs.append('{0} used a(n) {1}.'.format(self.playerName,
+                                                    obj.obj_type))
     
     def heal(self, heal_hp):
         self.hp = min(self.max_hp, self.hp + heal_hp)

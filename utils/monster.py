@@ -38,3 +38,5 @@ class Monster():
         if random.randint(1, 100) > min(75, 25 + (self.level - 1) * 4.2) or \
            (hit - self.dfn) > 50:
             self.hp = max(0, self.hp - max(0, hit - self.dfn))
+            return True, max(0, hit - self.getDfn())
+        return False, 0
