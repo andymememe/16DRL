@@ -1,4 +1,4 @@
-import datetime
+import datetime, random
 
 class Player():
     def __init__(self, playerName, hashID=None):
@@ -29,7 +29,7 @@ class Player():
         self.finished = False
         if hashID is None:
             self.hashID = '16DRL_' + \
-                          hash(playerName + str(datetime.datetime.now()))
+                          str(hash(playerName + str(datetime.datetime.now())))
         else:
             self.hashID = '16DRL_' + hashID
     
@@ -46,10 +46,10 @@ class Player():
         return list(self.inventory)
     
     def getWearable(self):
-        return [i if i.usage == 1 else None for i in self.invertory]
+        return [i if i.usage == 1 else None for i in self.inventory]
     
     def getUsable(self):
-        return [i if i.usage == 2 else None for i in self.invertory]
+        return [i if i.usage == 2 else None for i in self.inventory]
     
     def setStartPoint(self, x, y):
         self.x = x
@@ -61,7 +61,7 @@ class Player():
     
     def setInventory(self, obj):
         if obj.usage == 0:
-            self.score += obj.attr['score']
+            self.score += obj.attrs['score']
         else:
             self.inventory.append(obj)
     
@@ -106,7 +106,7 @@ class Player():
                     self.atk -= temp.attrs[k]
                 elif k == 'dfn':
                     self.dfn -= temp.attrs[k]
-                elif k == 'max_hp:'
+                elif k == 'max_hp':
                     self.max_hp -= temp.attrs[k]
                 elif k == 'atk_mul':
                     self.atk_mul -= obj.attrs[k]

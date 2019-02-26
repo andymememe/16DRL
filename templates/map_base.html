@@ -4,31 +4,40 @@
 
 {% block header %}
     <h1>{% block title %} {{ player.playerName }} -- 16DRL{% endblock %}</h1>
-    <h2>HashID: <span id="hashid">{{ player.hashID }}</span> (YOU MUST REMEMBER THIS!!!)</h2>
+    <h2>HashID: <span id="hashid">{{ player.hashID }}</span> (YOU MUST REMEMBER THIS)</h2>
 {% endblock %}
 
 {% block content %}
-    <table id="map">
-    {% for row in map.show_map(player) %}
-        <tr>
-        {% for col in row %}
-           <td>{{ col }}</td> 
+    <div id="map">
+        <table>
+        {% for row in map.show_map(player) %}
+            <tr>
+            {% for col in row %}
+               <td>{{ col }}</td> 
+            {% endfor %}
+            </tr>
         {% endfor %}
-        </tr>
-    {% endfor %}
-    </table><br>
+        </table>
+    </div><br>
     <div id="player_info">
         <span>LV: {{ player.level }}</span>
         <span>HP: {{ player.hp }}</span>
         <span>Atk: {{ player.getAtk() }}</span>
         <span>Dfn: {{ player.getDfn() }}</span>
-    </div>
-    <textarea disabled>
-        {% for log in map.logs %}
-            {{ log }}&#13;&#10;
-        {% endfor %}
-    </textarea><br>
-    <a href="/use/{{ player.hashID }}">Use</a>
-    <a href="/wear/{{ player.hashID }}">Wear</a><br>
+    </div><br>
+    <div id="buttons">
+        <a href="/use/{{ player.hashID }}">Use</a>
+        <a href="/wear/{{ player.hashID }}">Wear</a>
+    </div><br>
     {% block info %}{% endblock %}
+    <textarea id='logs' disabled>
+        {% for log in map.getLogs() %}
+{{ log }}&#13;&#10;
+        {% endfor %}
+    </textarea>
 {% endblock %}
+
+<script>
+    var textarea = document.getElementById('logs');
+    textarea.scrollTop = textarea.scrollHeight;
+</script>

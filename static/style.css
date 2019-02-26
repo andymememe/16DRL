@@ -1,8 +1,80 @@
-textarea {
+@import url('https://fonts.googleapis.com/css?family=Space+Mono');
+
+html *
+{
+    font-family: 'Space Mono', monospace !important;
+}
+
+h1
+{
+    text-align: center;
+    text-transform: capitalize;
+    font-size: xx-large;
+}
+
+h2
+{
+    text-align: center;
+    font-size: large;
+}
+
+textarea
+{
     resize: none;
     width: 50%;
-    height: 25%;
+    height: 200px;
     display: block;
     margin-left: auto;
     margin-right: auto;
+}
+
+#hashid
+{
+    color: red;
+}
+
+#map
+{
+    margin: auto;
+    width: 50%;
+    text-align: center;
+}
+
+#map table {
+    font-size: x-large;
+    margin: 0 auto; /* or margin: 0 auto 0 auto */
+}
+
+#buttons
+{
+    margin: auto;
+    width: 50%;
+    text-align: center;
+}
+
+#player_info
+{
+    margin: auto;
+    width: 50%;
+    text-align: center;
+    border-style: solid;
+    border-radius: 5px;
+}
+
+#items
+{
+    margin: auto;
+    width: 50%;
+    text-align: center;
+}
+
+#items table, #items th, #items td
+{
+    margin: 0 auto; /* or margin: 0 auto 0 auto */
+    border: solid black;
+}
+
+#items ul
+{
+    padding-left: 20px;
 }

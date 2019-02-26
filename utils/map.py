@@ -466,6 +466,7 @@ class Map():
         self.gen_start_end((sx, sy), (ex, ey))
                             
     def gen_tiles_level(self):
+        self.tiles_level = []
         for row_num, row in enumerate(self.level):
             tmp_tiles = []
  
@@ -478,7 +479,7 @@ class Map():
             self.tiles_level[mon.y][mon.x] = mon.sym
         
         for obj in self.objs_list:
-            self.tiles_level[obj.y][obj.x] = self.tiles[self.obj_type]
+            self.tiles_level[obj.y][obj.x] = self.tiles[obj.obj_type]
     
     def check_path(self, x, y):
         # Check Door
@@ -535,7 +536,7 @@ class Map():
     
     def player_move(self, player, dir):        
         # Next step check
-        next_step_state = 'player'
+        next_step_state = 'floor'
         ny = player.y
         nx = player.x
         if dir == 'up':
@@ -551,15 +552,18 @@ class Map():
             next_step_state = self.level[player.y][player.x + 1]
             nx = player.x + 1
         
+        print(next_step_state)
         if next_step_state == 'object':
-            for obj in objs_list:
+            for obj in self.objs_list:
                 if obj.x == nx and obj.y == ny:
                     player.setInventory(obj)
-                    objs_list.remove(obj)
+                    self.objs_list.remove(obj)
                     self.logs.append('{0} got a {1}.'.format(
                         player.playerName,
                         obj.obj_type
                     ))
+                    self.level[ny][nx] = 'floor'
+                    player.move(nx, ny)
                     break
         elif next_step_state == 'door':
             self.logs.append('{0} opened a door.'.format(player.playerName))
@@ -580,13 +584,18 @@ class Map():
             self.logs.append('{0} used a fountain.'.format(player.playerName))
             self.logs.append('{0} recovered 20 hp.'.format(player.playerName))
         elif next_step_state == 'monster':
-            for mon in mons_list:
+            for mon in self.mons_list:
                 if mon.x == nx and mon.y == ny:
+                    print('found')
                     hit, lose_hp = mon.combat(player.atk)
                     if hit:
                         self.logs.append(
-                            'Monster got hit and lose {1} hp.'.format(lose_hp)
+                            'Monster got hit and lose {0} hp.'.format(lose_hp)
                         )
+                        if mon.hp == 0:
+                            self.level[ny][nx] = 'floor'
+                            player.move(nx, ny)
+                            self.mons_list.remove(mon)
                     else:
                         self.logs.append(
                             '{0}\'s attack is missed'.format(player.playerName)
@@ -617,7 +626,7 @@ class Map():
             self.logs.append('{0} found the throne.'.format(player.playerName))
     
     def update(self, player):
-        for mon in mons_list:
+        for mon in self.mons_list:
             if abs(mon.x - player.x) < 10 and abs(mon.y - player.y) < 10:
                 if abs(mon.x - player.x) == 1 or abs(mon.y - player.y) == 1:
                     hit, lose_hp = player.combat(mon.atk)
@@ -637,7 +646,20 @@ class Map():
                         dx = (player.x - mon.x) // abs(player.x - mon.x)
                     if not player.y - mon.y == 0:
                         dy = (player.y - mon.y) // abs(player.y - mon.y)
-                    mon.move(mon.x + dx, mon.y + dy)
+                    
+                    if self.level[mon.y + dy][mon.x + dx] == 'floor':
+                        self.level[mon.y][mon.x] = 'floor'
+                        mon.move(mon.x + dx, mon.y + dy)
+                        self.level[mon.y][mon.x] = 'monster'
+                    elif self.level[mon.y + dy][mon.x] == 'floor':
+                        self.level[mon.y][mon.x] = 'floor'
+                        mon.move(mon.x, mon.y + dy)
+                        self.level[mon.y][mon.x] = 'monster'
+                    elif self.level[mon.y][mon.x + dx] == 'floor':
+                        self.level[mon.y][mon.x] = 'floor'
+                        mon.move(mon.x + dx, mon.y)
+                        self.level[mon.y][mon.x] = 'monster'
+        self.gen_tiles_level()
     
     def reset(self, player):
         self.gen_level()
@@ -647,13 +669,13 @@ class Map():
     def show_map(self, player):
         cameraX = min(max(4, player.x), self.width - 5)
         cameraY = min(max(4, player.y), self.height - 5)
-
-        level = list(self.tiles_level)
-        level[player.y][player.x] = '@'
+        
+        total_map = list(self.tiles_level)
+        total_map[player.y][player.x] = '@'
         displayMap = [
             row[
                 cameraX - 4:cameraX + 5
-            ] for row in level[cameraY - 4:cameraY + 5]
+            ] for row in total_map[cameraY - 4:cameraY + 5]
         ]
         return displayMap
     
@@ -661,3 +683,6 @@ class Map():
         level = list(self.tiles_level)
         level[player.y][player.x] = '@'
         return level
+    
+    def getLogs(self):
+        return reversed(self.logs)

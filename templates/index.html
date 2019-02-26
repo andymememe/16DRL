@@ -5,7 +5,7 @@
 {% endblock %}
 
 {% block content %}
-    <form action="{{ url_for('map') }}" method="post">
+    <form action="{{ url_for('login') }}" method="post">
         Username (New) / Hash ID (Old):<br>
         <input type="text" name="_id" /><br>
         <input type="submit" value="Sign Up / Sign In" />

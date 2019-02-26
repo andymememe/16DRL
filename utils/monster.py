@@ -22,13 +22,11 @@ class Monster():
     def __str__(self):
         return self.sym
     
-    def _gen_mon(self):
-        self.sym = random.choice(SYMSET)
-        if self.level > 6:
-            self.sym = self.sym.upper()
-        self.atk = random.randint(1, self.level * 5)
-        self.dfn = random.randint(1, self.level * 5)
-        self.hp = random.randint(10, self.level * 100)
+    def getDfn(self):
+        return self.dfn
+        
+    def getAtk(self):
+        return self.atk
     
     def move(self, x, y):
         self.x = x
@@ -40,3 +38,11 @@ class Monster():
             self.hp = max(0, self.hp - max(0, hit - self.dfn))
             return True, max(0, hit - self.getDfn())
         return False, 0
+    
+    def _gen_mon(self):
+        self.sym = random.choice(SYMSET)
+        if self.level > 6:
+            self.sym = self.sym.upper()
+        self.atk = random.randint(1, self.level * 5)
+        self.dfn = random.randint(1, self.level * 5)
+        self.hp = random.randint(10, self.level * 100)

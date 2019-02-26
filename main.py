@@ -3,15 +3,15 @@ from flask import Flask, request, redirect, render_template, abort
 from utils.map import Map
 from utils.player import Player
 
-APP = Flask(__name__)
 DEBUG = True
 PLAYER_DB = None
+APP = Flask(__name__)
 
 @APP.route('/')
 def index():
     return render_template('index.html')
     
-@APP.route('/login')
+@APP.route('/login', methods=['POST'])
 def login():
     id = request.values['_id']
     if id.startswith('16DRL_'):
@@ -38,12 +38,15 @@ def map(id):
 @APP.route('/wear/<id>')
 def wear(id):
     player, map = loadData(id)
-    return render_template('map_wear.html', player=player, map=map)
+    return render_template('map_items.html',
+                           player=player, map=map,
+                           usage='wear',
+                           objs=player.getWearable())
 
 @APP.route('/wear/<id>/<int:index>')
 def wear_it(id, index):
     player, map = loadData(id)
-    player.wear(index)
+    player.wear(index, map)
     map.update(player)
     save(player, map)
     return redirect("/map/" + player.hashID, code=303)
@@ -51,12 +54,15 @@ def wear_it(id, index):
 @APP.route('/use/<id>')
 def use(id):
     player, map = loadData(id)
-    return render_template('map_use.html', player=player, map=map)
+    return render_template('map_items.html',
+                           player=player, map=map,
+                           usage='use',
+                           objs=player.getUsable())
     
 @APP.route('/use/<id>/<int:index>')
 def use_it(id, index):
     player, map = loadData(id)
-    player.use(index)
+    player.use(index, map)
     map.update(player)
     save(player, map)
     return redirect("/map/" + player.hashID, code=303)
@@ -89,35 +95,13 @@ def loadData(id):
     else:
         abort(404)
     
-if __name__ == "__main__":
-    # Debug
-    if DEBUG:
-        print('Loading debug map...')
-        map = Map(1)
-        player = Player('Test')
-        map.reset(player)
-        showMap = map.show_map(player)
-        level = map.show_total_map(player)
-
-        with open('camera.debug', 'w') as f:
-            for row in showMap:
-                for col in row:
-                    f.write(col)
-                f.write('\n')
-
-        with open('total.debug', 'w') as f:
-            for row in level:
-                for col in row:
-                    f.write(col)
-                f.write('\n')
-        print('End loading debug map...')
-    
+if __name__ == "__main__":    
     # Main Function
     try:
         PLAYER_DB = shelve.open('storage/db.shelf', writeback=True)
         if 'player' not in PLAYER_DB:
             PLAYER_DB['player'] = {}
-        APP.run(host='0.0.0.0', port='5555')
+        APP.run(host='0.0.0.0', port='5555', debug=DEBUG)
     except Exception as e:
         print(str(e))
     finally:

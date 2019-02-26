@@ -1,0 +1,23 @@
+{% extends 'map_base.html' %}
+
+{% block info %}
+    <div id="items">
+        <table>
+            {% for obj in objs %}
+                {% if obj is not none %}
+                <tr>
+                    <td><a href="/{{ usage }}/{{ player.hashID }}/{{ loop.index0 }}">{{ usage.upper() }}</a></td>
+                    <td> {{ obj.obj_type }} </td>
+                    <td>
+                        <ul>
+                            {% for attr in obj.attrs %}
+                                <li>{{ attr }}: {{ obj.attrs[attr] }}</li>
+                            {% endfor %}
+                        </ul>
+                    </td>
+                </tr>
+                {% endif %}
+            {% endfor %}
+        </table>
+    </div><br>
+{% endblock %}
