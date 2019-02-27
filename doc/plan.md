@@ -11,7 +11,6 @@
 
 ### Server
  * Flask
- * ZODB -- Persistent
  
 ### Web
  * HTML5
