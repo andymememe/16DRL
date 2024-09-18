@@ -22,8 +22,8 @@ def login():
         map = Map(13)
         player = Player(id)
         map.reset(player)
-        showMap = map.show_map(player)
-        level = map.show_total_map(player)
+        _ = map.show_map(player)
+        _ = map.show_total_map(player)
         
         # Save Map
         save(player, map)
@@ -70,9 +70,6 @@ def use_it(id, index):
 @APP.route('/move/<id>/<dir>')
 def move(id, dir):
     player, map = loadData(id)
-    map.player_move(player, dir)
-    map.update(player)
-    save(player, map)
     
     if player.finished:
         if player.hp == 0:
@@ -84,6 +81,9 @@ def move(id, dir):
             return render_template('map_finished.html',
                                    player=player, map=map, message='You Win')
     else:
+        map.player_move(player, dir)
+        map.update(player)
+        save(player, map)
         return redirect("/map/" + player.hashID, code=303)
 
 def save(player, map):
